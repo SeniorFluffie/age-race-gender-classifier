@@ -236,7 +236,7 @@ class MuiltiMobileModel():
         x = Reshape((1, 1, last_filters))(x)# this line determines end shape maybe?
         x = Dropout(0.3)(x)
         x = Conv2D(k, (1, 1), padding='same')(x)
-        x = Activation('softmax')(x)#this line might change based on the activation we want, here should we be using linear?
+        x = Activation('linear')(x)#this line might change based on the activation we want, here should we be using linear?
 
         #output = Reshape((k,))(x) //We're not returning output here but we DO want to reshape
         x = Reshape((k,),name="age_output")(x)
@@ -264,9 +264,3 @@ class MuiltiMobileModel():
         model = Model(inputs=inputs, outputs = [age_branch, race_branch, gender_branch], name="face_net")
         # plot_model(model, to_file='images/MobileNetv2.png', show_shapes=True)
         return model
-model = MuiltiMobileModel().build_multi_model((200,200,3))
-from keras.utils.vis_utils import plot_model
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-
-plot_model(model, to_file='model.png', show_shapes=True)
