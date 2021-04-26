@@ -6,11 +6,11 @@ from keras import backend as K
 import tensorflow as tf
 
 class MuiltiMobileModel():
+    
     def _make_divisible(self, v, divisor, min_value=None):
         if min_value is None:
             min_value = divisor
         new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
-        # Make sure that round down does not go down by more than 10%.
         if new_v < 0.9 * v:
             new_v += divisor
         return new_v
@@ -134,17 +134,6 @@ class MuiltiMobileModel():
         x = self._inverted_residual_block(x, 160, (3, 3), t=6, alpha=alpha, strides=2, n=3)
         x = self._inverted_residual_block(x, 320, (3, 3), t=6, alpha=alpha, strides=1, n=1)
 
-        #if alpha > 1.0:
-            #last_filters = _make_divisible(1280 * alpha, 8)
-        #else:
-            #last_filters = 1280
-
-        #x = _conv_block(x, last_filters, (1, 1), strides=(1, 1))
-        #x = GlobalAveragePooling2D()(x)
-        #x = Reshape((1, 1, last_filters))(x)
-        #x = Dropout(0.3, name='Dropout')(x)
-        #x = Conv2D(k, (1, 1), padding='same')(x)
-
         return x
 
     def build_race_branch(self, inputs, num_races = 5, alpha = 1.0):
@@ -157,27 +146,19 @@ class MuiltiMobileModel():
         x = self.BaseMobileNet(inputs, alpha)
 
         if alpha > 1.0:
-            last_filters = _make_divisible(1280 * alpha, 8)
+            last_filters = self._make_divisible(1280 * alpha, 8)
         else:
             last_filters = 1280
 
         x = self._conv_block(x, last_filters, (1, 1), strides=(1, 1))
         x = GlobalAveragePooling2D()(x)
-        x = Reshape((1, 1, last_filters))(x)# this line determines end shape maybe?
+        x = Reshape((1, 1, last_filters))(x)
         x = Dropout(0.3)(x)
         x = Conv2D(k, (1, 1), padding='same')(x)
-        x = Activation('softmax')(x)#this line might change based on the activation we want, here softmax is fine
-        #output = Reshape((k,))(x) //We're not returning output here but we DO want to reshape
+        x = Activation('softmax')(x)
+       
         x = Reshape((k,), name="race_output")(x)
-        
-        #i dont think the stuff below this really applies to mobile net. its part of the model rodrigobressan uses, not mobile net.
-        #x = Flatten()(x)
-        #x = Dense(128)(x)
-        #x = Activation("relu")(x)
-        #x = BatchNormalization()(x)
-        #x = Dropout(0.5)(x)
-        #x = Dense(num_races)(x)
-        #x = Activation("softmax", name="race_output")(x)
+
         print(type(x))
         return x
 
@@ -191,28 +172,20 @@ class MuiltiMobileModel():
         k = num_genders
         x = self.BaseMobileNet(inputs, alpha)
         if alpha > 1.0:
-            last_filters = _make_divisible(1280 * alpha, 8)
+            last_filters = self._make_divisible(1280 * alpha, 8)
         else:
             last_filters = 1280
 
         x = self._conv_block(x, last_filters, (1, 1), strides=(1, 1))
         x = GlobalAveragePooling2D()(x)
-        x = Reshape((1, 1, last_filters))(x)# this line determines end shape maybe?
+        x = Reshape((1, 1, last_filters))(x)
         x = Dropout(0.3)(x)
         x = Conv2D(k, (1, 1), padding='same')(x)
-        x = Activation('softmax')(x)#this line might change based on the activation we want, here should we be using sigmoid?
+        x = Activation('softmax')(x)
 
-        #output = Reshape((k,))(x) //We're not returning output here but we DO want to reshape
         x = Reshape((k,), name="gender_output")(x)
     
-        #i dont think the stuff below this really applies to mobile net. its part of the model rodrigobressan uses, not mobile net.
-        #x = Flatten()(x)
-        #x = Dense(128)(x)
-        #x = Activation("relu")(x)
-        #x = BatchNormalization()(x)
-        #x = Dropout(0.5)(x)
-        #x = Dense(num_genders)(x)
-        #x = Activation("sigmoid", name="gender_output")(x)
+
 
         return x
 
@@ -223,7 +196,7 @@ class MuiltiMobileModel():
         followed by the Dense output layer.
 
         """
-        k = 1 #?
+        k = 1
         x = self.BaseMobileNet(inputs, alpha)
 
         if alpha > 1.0:
@@ -233,34 +206,24 @@ class MuiltiMobileModel():
 
         x = self._conv_block(x, last_filters, (1, 1), strides=(1, 1))
         x = GlobalAveragePooling2D()(x)
-        x = Reshape((1, 1, last_filters))(x)# this line determines end shape maybe?
+        x = Reshape((1, 1, last_filters))(x)
         x = Dropout(0.3)(x)
         x = Conv2D(k, (1, 1), padding='same')(x)
-        x = Activation('linear')(x)#this line might change based on the activation we want, here should we be using linear?
+        x = Activation('linear')(x)
 
-        #output = Reshape((k,))(x) //We're not returning output here but we DO want to reshape
+        
         x = Reshape((k,),name="age_output")(x)
     
-        #i dont think the stuff below this really applies to mobile net. its part of the model rodrigobressan uses, not mobile net.
-
-        #x = Flatten()(x)
-        #x = Dense(128)(x)
-        #x = Activation("relu")(x)
-        #x = BatchNormalization()(x)
-        #x = Dropout(0.5)(x)
-        #x = Dense(1)(x)
-        #x = Activation("linear", name="age_output")(x)
 
         return x
 
-    def build_multi_model(self, input_shape): #def MobileNetv2(input_shape, k, alpha=1.0):
+    def build_multi_model(self, input_shape, alpha = 1.0):
         inputs = Input(shape=input_shape)
-        #x = Activation('softmax', name='softmax')(x)
-        #print(x)
-        age_branch = self.build_age_branch(inputs)
-        race_branch = self.build_race_branch(inputs)
-        gender_branch = self.build_gender_branch(inputs)
+        
+        age_branch = self.build_age_branch(inputs, alpha = alpha)
+        race_branch = self.build_race_branch(inputs, alpha = alpha)
+        gender_branch = self.build_gender_branch(inputs, alpha = alpha)
 
         model = Model(inputs=inputs, outputs = [age_branch, race_branch, gender_branch], name="face_net")
-        # plot_model(model, to_file='images/MobileNetv2.png', show_shapes=True)
+      
         return model
